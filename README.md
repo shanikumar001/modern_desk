@@ -162,63 +162,57 @@ Edit `frontend/tailwind.config.js` to customize colors and styling.
 2. Add the widget to `App.tsx`
 3. Style using Tailwind CSS classes
 
-## Deployment to Render (Deploy Together)
+## Deployment to Render (Separate Frontend & Backend)
 
-### Option 1: Deploy from GitHub (Recommended)
+### Deploy Backend
 
 1. **Push your code to GitHub**
 
-   ```bash
-   git init
-   git add .
-   git commit -m "Initial commit"
-   git remote add origin https://github.com/yourusername/your-repo.git
-   git push -u origin main
-   ```
-
-2. **Create a Render Account**
-   - Go to [render.com](https://render.com) and sign up
-   - Connect your GitHub account
-
-3. **Deploy**
-   - Click "New +" → "Web Service"
+2. **Create Backend Service**
+   - Go to [render.com](https://render.com) → "New +" → "Web Service"
    - Select your repository
    - Configure:
-     - Name: `glassmorphism-dashboard`
-     - Root Directory: (leave empty or set to root)
-     - Build Command: `npm install && npm install --prefix frontend && npm run build --prefix frontend`
-     - Start Command: `npm start --prefix backend`
-   - Add Environment Variable:
-     - `NODE_ENV`: `production`
-     - `PORT`: `10000`
+     - **Name**: `glassmorphism-backend`
+     - **Root Directory**: `backend`
+     - **Build Command**: `npm install`
+     - **Start Command**: `npm start`
+   - Add Environment Variables:
+     - `NODE_ENV` = `production`
+     - `PORT` = `10000`
    - Click "Create Web Service"
 
-4. **Access your app**
-   - Once deployed, your app will be available at `https://glassmorphism-dashboard.onrender.com`
-   - The frontend and backend are served together from the same domain
+3. **Copy your backend URL** (e.g., `https://glassmorphism-backend.onrender.com`)
 
-### Option 2: Deploy using render.yaml
+### Deploy Frontend
 
-1. Push code to GitHub
-2. In Render dashboard, click "New +" → "Blueprint"
-3. Connect your GitHub repository
-4. Render will read `render.yaml` and create the service
+1. **Create Frontend Service**
+   - Go to render.com → "New +" → "Static Site"
+   - Select your repository
+   - Configure:
+     - **Name**: `glassmorphism-frontend`
+     - **Root Directory**: `frontend`
+     - **Build Command**: `npm install && npm run build`
+     - **Publish directory**: `dist`
+   - Add Environment Variable:
+     - `VITE_API_URL` = `https://glassmorphism-backend.onrender.com/api`
+       (Replace with your actual backend URL from step above)
+   - Click "Create Static Site"
+
+### Access Your App
+
+- Frontend: `https://glassmorphism-frontend.onrender.com`
+- Backend API: `https://glassmorphism-backend.onrender.com/api`
 
 ### Environment Variables
 
-**Required:**
+**Backend:**
 
 - `NODE_ENV`: `production`
-- `PORT`: `10000` (or auto-assigned by Render)
+- `PORT`: `10000`
 
-### How It Works
+**Frontend:**
 
-In production mode:
-
-- The Express server serves the built frontend from `frontend/dist`
-- All `/api/*` routes are handled by the backend
-- All other routes serve the React SPA (Single Page Application)
-- No CORS issues since frontend and backend are on the same domain
+- `VITE_API_URL`: Your backend API URL (e.g., `https://glassmorphism-backend.onrender.com/api`)
 
 ## License
 

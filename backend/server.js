@@ -1,6 +1,5 @@
 const express = require("express");
 const cors = require("cors");
-const path = require("path");
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -9,13 +8,7 @@ const PORT = process.env.PORT || 3001;
 app.use(cors({ origin: true, credentials: true }));
 app.use(express.json());
 
-// Serve static files from frontend dist in production
-const isProduction = process.env.NODE_ENV === "production";
-if (isProduction) {
-  app.use(express.static(path.join(__dirname, "../frontend/dist")));
-}
-
-// ─── API Routes ──────────────────────────────────────────────────────
+// ─── In-Memory Storage ───────────────────────────────────────────────
 
 // ─── In-Memory Storage ───────────────────────────────────────────────
 let nextTodoId = 1;
@@ -138,15 +131,6 @@ app.get("/api/weather", async (req, res) => {
 
 // ─── Start ───────────────────────────────────────────────────────────
 
-// Serve index.html for all non-API routes (SPA support)
-app.get("*", (req, res) => {
-  if (isProduction && !req.path.startsWith("/api")) {
-    res.sendFile(path.join(__dirname, "../frontend/dist/index.html"));
-  } else if (!isProduction) {
-    res.status(404).json({ error: "Not found" });
-  }
-});
-
 app.listen(PORT, () => {
-  console.log(`✅ Server running at http://localhost:${PORT}`);
+  console.log(`✅ Backend running at http://localhost:${PORT}`);
 });

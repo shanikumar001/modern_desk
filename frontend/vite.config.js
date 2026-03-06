@@ -4,11 +4,7 @@ import { defineConfig } from "vite";
 
 const proxyTarget = process.env.VITE_PROXY_TARGET || "http://localhost:3001";
 
-// Set base URL for production deployment
-const base = process.env.NODE_ENV === "production" ? "/" : "/";
-
 export default defineConfig({
-  base,
   build: {
     emptyOutDir: true,
     sourcemap: false,

@@ -1,4 +1,4 @@
-// Use relative API path - works for both local dev (via proxy) and production (same domain)
+// Use environment variable for API URL, fallback to relative path
 const API_BASE = import.meta.env.VITE_API_URL || "";
 
 export interface Todo {
