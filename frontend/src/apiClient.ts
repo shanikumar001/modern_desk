@@ -1,4 +1,4 @@
-// Use environment variable for API URL, fallback to relative path
+// Use environment variable for API URL (set in Render), fallback to relative path for local dev
 const API_BASE = import.meta.env.VITE_API_URL || "";
 
 export interface Todo {

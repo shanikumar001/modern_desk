@@ -1,7 +1,7 @@
 services:
   # Backend Service
   - type: web
-    name: glassmorphism-backend
+    name: modern-desk
     env: node
     region: oregon
     buildCommand: cd backend && npm install
@@ -12,14 +12,15 @@ services:
       - key: PORT
         value: 10000
     healthCheckPath: /api/todos
+    domain: modern-desk.onrender.com
 
   # Frontend Service
-  - type: web
-    name: glassmorphism-frontend
-    env: static
+  - type: static
+    name: modern-homescreen
     region: oregon
     buildCommand: cd frontend && npm install && npm run build
     startCommand: npx serve -s dist
     envVars:
       - key: VITE_API_URL
-        value: https://glassmorphism-backend.onrender.com/api
+        value: https://modern-desk.onrender.com/api
+    domain: modern-homescreen.onrender.com

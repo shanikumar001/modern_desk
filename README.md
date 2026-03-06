@@ -172,7 +172,7 @@ Edit `frontend/tailwind.config.js` to customize colors and styling.
    - Go to [render.com](https://render.com) → "New +" → "Web Service"
    - Select your repository
    - Configure:
-     - **Name**: `glassmorphism-backend`
+     - **Name**: `modern-desk`
      - **Root Directory**: `backend`
      - **Build Command**: `npm install`
      - **Start Command**: `npm start`
@@ -181,7 +181,7 @@ Edit `frontend/tailwind.config.js` to customize colors and styling.
      - `PORT` = `10000`
    - Click "Create Web Service"
 
-3. **Copy your backend URL** (e.g., `https://glassmorphism-backend.onrender.com`)
+3. **Copy your backend URL**: `https://modern-desk.onrender.com`
 
 ### Deploy Frontend
 
@@ -189,19 +189,18 @@ Edit `frontend/tailwind.config.js` to customize colors and styling.
    - Go to render.com → "New +" → "Static Site"
    - Select your repository
    - Configure:
-     - **Name**: `glassmorphism-frontend`
+     - **Name**: `modern-homescreen`
      - **Root Directory**: `frontend`
      - **Build Command**: `npm install && npm run build`
      - **Publish directory**: `dist`
    - Add Environment Variable:
-     - `VITE_API_URL` = `https://glassmorphism-backend.onrender.com/api`
-       (Replace with your actual backend URL from step above)
+     - `VITE_API_URL` = `https://modern-desk.onrender.com/api`
    - Click "Create Static Site"
 
 ### Access Your App
 
-- Frontend: `https://glassmorphism-frontend.onrender.com`
-- Backend API: `https://glassmorphism-backend.onrender.com/api`
+- Frontend: `https://modern-homescreen.onrender.com`
+- Backend API: `https://modern-desk.onrender.com/api`
 
 ### Environment Variables
 
@@ -212,7 +211,7 @@ Edit `frontend/tailwind.config.js` to customize colors and styling.
 
 **Frontend:**
 
-- `VITE_API_URL`: Your backend API URL (e.g., `https://glassmorphism-backend.onrender.com/api`)
+- `VITE_API_URL`: `https://modern-desk.onrender.com/api`
 
 ## License
 
