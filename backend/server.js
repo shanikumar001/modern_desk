@@ -4,6 +4,14 @@ const cors = require("cors");
 const app = express();
 const PORT = process.env.PORT || 3001;
 
+// Root route - prevents "Cannot GET /" error
+app.get("/", (_req, res) => {
+  res.json({
+    status: "ok",
+    message: "Backend is running. API available at /api/*",
+  });
+});
+
 // CORS - allow all origins for flexibility (Render provides dynamic URLs)
 app.use(cors({ origin: true, credentials: true }));
 app.use(express.json());
