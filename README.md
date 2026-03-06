@@ -186,11 +186,11 @@ Edit `frontend/tailwind.config.js` to customize colors and styling.
    - Configure:
      - Name: `glassmorphism-dashboard`
      - Root Directory: (leave empty or set to root)
-     - Build Command: `npm install && cd frontend && npm install && npm run build`
-     - Start Command: `cd backend && npm start`
+     - Build Command: `npm install && npm install --prefix frontend && npm run build --prefix frontend`
+     - Start Command: `npm start --prefix backend`
    - Add Environment Variable:
      - `NODE_ENV`: `production`
-     - `PORT`: `10000` (or let Render assign)
+     - `PORT`: `10000`
    - Click "Create Web Service"
 
 4. **Access your app**

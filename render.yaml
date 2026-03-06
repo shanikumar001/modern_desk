@@ -3,8 +3,8 @@ services:
     name: glassmorphism-dashboard
     env: node
     region: oregon
-    buildCommand: npm install && cd frontend && npm install && npm run build
-    startCommand: cd backend && npm start
+    buildCommand: npm install && npm install --prefix frontend && npm run build --prefix frontend
+    startCommand: npm start --prefix backend
     envVars:
       - key: NODE_ENV
         value: production
