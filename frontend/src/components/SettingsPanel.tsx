@@ -447,8 +447,7 @@ export function SettingsPanel({
                 fontFamily: "Sora, sans-serif",
               }}
             >
-              GlassDash — your premium smart wallpaper homepage. Built by
-              using{" "}
+              GlassDash — your premium smart wallpaper homepage. Built by {" "}
               <a
                 href={`https://frontend-3ckl.onrender.com/`}
                 target="_blank"
