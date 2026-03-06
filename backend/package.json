@@ -1,0 +1,14 @@
+{
+    "name": "glassmorphism-dashboard-backend",
+    "version": "1.0.0",
+    "description": "Node.js backend for the Glassmorphism Smart Dashboard",
+    "main": "server.js",
+    "scripts": {
+        "start": "node server.js",
+        "dev": "node server.js"
+    },
+    "dependencies": {
+        "cors": "^2.8.5",
+        "express": "^4.21.0"
+    }
+}
