@@ -102,7 +102,11 @@ app.get("/api/geocode", async (req, res) => {
   try {
     const encodedCity = encodeURIComponent(city);
     const url = `https://geocoding-api.open-meteo.com/v1/search?name=${encodedCity}&count=1&language=en&format=json`;
-    const response = await fetch(url);
+    const response = await fetch(url, {
+      headers: {
+        "User-Agent": "modern-desk/1.0",
+      },
+    });
     if (!response.ok) {
       throw new Error(`Geocoding API responded with ${response.status}`);
     }
@@ -132,7 +136,11 @@ app.get("/api/weather", async (req, res) => {
   }
   try {
     const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,apparent_temperature,weather_code,wind_speed_10m,relative_humidity_2m`;
-    const response = await fetch(url);
+    const response = await fetch(url, {
+      headers: {
+        "User-Agent": "modern-desk/1.0",
+      },
+    });
     if (!response.ok) {
       throw new Error(`Weather API responded with ${response.status}`);
     }
