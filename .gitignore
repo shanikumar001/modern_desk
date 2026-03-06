@@ -25,7 +25,7 @@ yarn-debug.log*
 yarn-error.log*
 lerna-debug.log*
 
-# Local env files
+# Local env files (ignore local dev, but keep production)
 .env
 .env.local
 .env.development.local

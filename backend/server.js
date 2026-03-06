@@ -8,7 +8,14 @@ const PORT = process.env.PORT || 3001;
 app.use(cors({ origin: true, credentials: true }));
 app.use(express.json());
 
-// ─── In-Memory Storage ───────────────────────────────────────────────
+// ─── Health Check ──────────────────────────────────────────────────
+app.get("/api/health", (_req, res) => {
+  res.json({
+    status: "ok",
+    timestamp: Date.now(),
+    message: "Backend is running",
+  });
+});
 
 // ─── In-Memory Storage ───────────────────────────────────────────────
 let nextTodoId = 1;

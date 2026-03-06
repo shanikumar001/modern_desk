@@ -22,5 +22,5 @@ services:
     startCommand: npx serve -s dist
     envVars:
       - key: VITE_API_URL
-        value: https://modern-desk.onrender.com/api
+        value: https://modern-desk-urxm.onrender.com/api
     domain: modern-homescreen.onrender.com

@@ -181,7 +181,7 @@ Edit `frontend/tailwind.config.js` to customize colors and styling.
      - `PORT` = `10000`
    - Click "Create Web Service"
 
-3. **Copy your backend URL**: `https://modern-desk.onrender.com`
+3. **Copy your backend URL**: `https://modern-desk-urxm.onrender.com`
 
 ### Deploy Frontend
 
@@ -194,13 +194,13 @@ Edit `frontend/tailwind.config.js` to customize colors and styling.
      - **Build Command**: `npm install && npm run build`
      - **Publish directory**: `dist`
    - Add Environment Variable:
-     - `VITE_API_URL` = `https://modern-desk.onrender.com/api`
+     - `VITE_API_URL` = `https://modern-desk-urxm.onrender.com/api`
    - Click "Create Static Site"
 
 ### Access Your App
 
 - Frontend: `https://modern-homescreen.onrender.com`
-- Backend API: `https://modern-desk.onrender.com/api`
+- Backend API: `https://modern-desk-urxm.onrender.com/api`
 
 ### Environment Variables
 
@@ -211,7 +211,7 @@ Edit `frontend/tailwind.config.js` to customize colors and styling.
 
 **Frontend:**
 
-- `VITE_API_URL`: `https://modern-desk.onrender.com/api`
+- `VITE_API_URL`: `https://modern-desk-urxm.onrender.com/api`
 
 ## License
 
