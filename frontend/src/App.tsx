@@ -318,10 +318,10 @@ export default function App() {
       </nav>
 
       {/* ── Footer ── */}
-      <footer className="fixed bottom-2 left-1/2 -translate-x-1/2 z-10 text-[10px] text-white/20 uppercase tracking-widest font-bold pointer-events-none">
-        © {new Date().getFullYear()} Precision Dashboard • Built by Shani Kumar
+      <footer className="fixed bottom-2 left-1/2 -translate-x-1/2 z-10 text-[10px] text-white/20 tracking-widest pointer-events-none">
+        © {new Date().getFullYear()} • Built by Shani Kumar
       </footer>
-
+      {/* Precision Dashboard  */}
       <Toaster />
     </div>
   );

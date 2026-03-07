@@ -991,7 +991,7 @@
   justify-content: center;
   gap: 4px;
   width: 70px;
-  height: 70px;
+  height: 60px;
   padding: 16px;
   border-radius: 5px;
   cursor: pointer;
@@ -1010,7 +1010,7 @@
 }
 
 .widget-pill:hover {
-  transform: translateY(-4px) scale(1.06);
+  transform: translateY(-1px) scale(1.06);
   background: var(--accent-soft);
   border-color: var(--accent-raw);
   box-shadow:
