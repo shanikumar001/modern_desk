@@ -138,50 +138,66 @@ export function TodoWidget({ size = 'small', isExpanded = false }: { size?: Widg
         <div className="relative">
           {/* Task Icon with Glow */}
           <div className="absolute inset-0 bg-accent-raw/20 blur-xl opacity-30 animate-pulse" />
-          <ListTodo size={48} className="text-accent-raw relative z-10" />
+          {/* <ListTodo size={48} className="text-accent-raw relative z-10" /> */}
           
           {/* Badge for remaining tasks */}
-          {remaining > 0 && (
+          {/* {remaining > 0 && (
             <div className="absolute -top-1 -right-1 w-5 h-5 bg-accent-raw text-white text-[10px] font-black rounded-full flex items-center justify-center shadow-[0_0_10px_var(--accent-glow)] z-20">
               {remaining > 9 ? '9+' : remaining}
             </div>
-          )}
+          )} */}
         </div>
         
         {/* Progress Ring */}
-        <div className="mt-2 relative">
-          <svg width="50" height="50" className="transform -rotate-90">
-            {/* Background circle */}
-            <circle
-              cx="25"
-              cy="25"
-              r="18"
-              fill="none"
-              stroke="rgba(255,255,255,0.1)"
-              strokeWidth="3"
-            />
-            {/* Progress circle */}
-            <circle
-              cx="25"
-              cy="25"
-              r="18"
-              fill="none"
-              stroke="var(--accent-raw)"
-              strokeWidth="3"
-              strokeLinecap="round"
-              strokeDasharray={`${(1 - remaining / Math.max(todos.length, 1)) * 113} 113`}
-              className="transition-all duration-500"
-              style={{
-                filter: 'drop-shadow(0 0 6px var(--accent-glow))',
-              }}
-            />
-          </svg>
-          <div className="absolute inset-0 flex items-center justify-center">
-            <span className="text-[10px] font-bold text-white/60">
-              {Math.round((1 - remaining / Math.max(todos.length, 1)) * 100)}%
-            </span>
-          </div>
-        </div>
+       <div className="mt-3 relative flex items-center justify-center">
+  <svg width="80" height="80" className="-rotate-90">
+    
+    {/* Gradient Definition */}
+    <defs>
+      <linearGradient id="progressGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stopColor="var(--accent-raw)" />
+        <stop offset="100%" stopColor="rgba(255,255,255,0.9)" />
+      </linearGradient>
+    </defs>
+
+    {/* Background Circle */}
+    <circle
+      cx="40"
+      cy="40"
+      r="30"
+      fill="none"
+      stroke="rgba(255,255,255,0.08)"
+      strokeWidth="6"
+    />
+
+    {/* Animated Glow Ring */}
+    <circle
+      cx="40"
+      cy="40"
+      r="30"
+      fill="none"
+      stroke="url(#progressGradient)"
+      strokeWidth="6"
+      strokeLinecap="round"
+      strokeDasharray={`${
+        (1 - remaining / Math.max(todos.length, 1)) * 188
+      } 188`}
+      className="transition-all duration-700 ease-out"
+      style={{
+        filter: "drop-shadow(0 0 10px var(--accent-glow))",
+      }}
+    />
+
+  </svg>
+
+  {/* Center Content */}
+  <div className="absolute flex flex-col items-center justify-center">
+    <span className="text-sm font-bold text-white">
+      {Math.round((1 - remaining / Math.max(todos.length, 1)) * 100)}%
+    </span>
+    <span className="text-[10px] text-white/50">Done</span>
+  </div>
+</div>
         
         {/* Status Text */}
         <div className="mt-1 text-[8px] uppercase tracking-widest text-white/40 font-bold">
