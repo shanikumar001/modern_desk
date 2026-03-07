@@ -265,6 +265,8 @@
   }
 }
 
+
+
 /* ═══════════════════════════════════════════════════════════
    GLASSMORPHISM COMPONENTS
 ═══════════════════════════════════════════════════════════ */
@@ -988,10 +990,10 @@
   align-items: center;
   justify-content: center;
   gap: 4px;
-  min-width: 90px;
-  height: 68px;
-  padding: 8px 16px;
-  border-radius: 20px;
+  width: 70px;
+  height: 70px;
+  padding: 16px;
+  border-radius: 5px;
   cursor: pointer;
   border: 1px solid transparent;
   background: rgba(255, 255, 255, 0.04);
