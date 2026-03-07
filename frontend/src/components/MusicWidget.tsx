@@ -2,6 +2,7 @@ import React, { useRef, useEffect } from 'react';
 import { Play, Pause, SkipBack, SkipForward, Volume2, FolderPlus, FilePlus, ListMusic, X, Disc, Trash2 } from 'lucide-react';
 import { WidgetSize } from '../context/WidgetContext';
 import { useMusic } from '../context/MusicContext';
+import { MusicArtworkAnimation } from './MusicArtworkAnimation';
 
 interface MusicWidgetProps {
     size?: WidgetSize;
@@ -51,20 +52,20 @@ export const MusicWidget: React.FC<MusicWidgetProps> = ({ size = 'small', width 
     if (isMini) {
         const artworkSize = Math.min(width, height) * 0.4;
         return (
-            <div className={`group relative flex flex-col items-center justify-center h-full w-full p-2 overflow-hidden transition-all duration-700 ${isPlaying ? '' : ''}`}>
+            <div className={`group relative flex flex-col items-center justify-center h-full w-full p-2 overflow-hidden transition-all duration-700  ${isPlaying ? '' : ''}`}>
                 {isPlaying && (
-                    <div className="absolute inset-0 z-0 opacity-20 animate-pulse">
-                        <div className="absolute inset-[-50%] bg-[radial-gradient(circle_at_center,oklch(var(--accent))_0%,transparent_70%)] blur-[40px] animate-[spin_10s_linear_infinite]" />
+                    <div className="absolute inset-0 z-0 opacity-20 animate-pulse border-2">
+                        {/* <div className="absolute inset-[-50%] bg-[radial-gradient(circle_at_center,oklch(var(--accent))_0%,transparent_70%)] blur-[40px] animate-[spin_10s_linear_infinite]" /> */}
                     </div>
                 )}
 
                 <div className="relative z-10 flex flex-col items-center gap-2">
-                    <div className={`relative ${isPlaying ? 'animate-[spin_15s_linear_infinite]' : ''}`}>
+                    <div className="relative">
                         <div
                             className="rounded-full bg-gradient-to-tr from-white/20 to-white/5 border border-white/10 flex items-center justify-center shadow-xl relative overflow-hidden"
                             style={{ width: artworkSize, height: artworkSize }}
                         >
-                            <Disc size={artworkSize * 0.6} className="text-white/20" />
+                            <MusicArtworkAnimation isPlaying={isPlaying} size={artworkSize} />
                         </div>
                     </div>
 
@@ -110,11 +111,11 @@ export const MusicWidget: React.FC<MusicWidgetProps> = ({ size = 'small', width 
                         {/* Artwork */}
                         <div className="relative group shrink-0">
                             <div
-                                className="bg-gradient-to-br from-white/20 to-transparent flex items-center justify-center rounded-3xl shadow-2xl border border-white/10 overflow-hidden"
+                                className="bg-gradient-to-br from-white/20 to-transparent flex items-center justify-center rounded-3xl shadow-2xl border border-white/10 overflow-hidden relative"
                                 style={{ width: Math.max(120, 200 * scale), height: Math.max(120, 200 * scale) }}
                             >
-                                <Disc size={100 * scale} className={`text-white/5 ${isPlaying ? 'animate-[spin_20s_linear_infinite]' : ''}`} />
-                                <div className="absolute inset-0 bg-accent/5 mix-blend-overlay" />
+                                <MusicArtworkAnimation isPlaying={isPlaying} size={Math.max(120, 200 * scale)} />
+                                <div className="absolute inset-0 bg-accent/5 mix-blend-overlay pointer-events-none" />
                             </div>
                             {isPlaying && <div className="absolute -inset-4 border border-accent/20 rounded-[2.5rem] animate-ping opacity-20 pointer-events-none" />}
                         </div>
