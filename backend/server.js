@@ -30,6 +30,10 @@ let nextTodoId = 1;
 let todos = [];
 let preferences = { theme: "dark", accentColor: "purple" };
 
+// Weather cache: { "roundedLat,roundedLon": { data, timestamp } }
+const weatherCache = new Map();
+const CACHE_TTL = 15 * 60 * 1000; // 15 minutes
+
 // ─── Todo CRUD ───────────────────────────────────────────────────────
 
 // List all todos
@@ -135,6 +139,19 @@ app.get("/api/weather", async (req, res) => {
     return res.status(400).json({ error: "lat and lon query params required" });
   }
 
+  // Round to 2 decimal places (~1.1km precision) for better cache hits
+  const roundedLat = parseFloat(lat).toFixed(2);
+  const roundedLon = parseFloat(lon).toFixed(2);
+  const cacheKey = `${roundedLat},${roundedLon}`;
+
+  const cached = weatherCache.get(cacheKey);
+  if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+    console.log(`[Cache Hit] Weather for ${cacheKey}`);
+    return res.json(cached.data);
+  }
+
+  console.log(`[Cache Miss] Fetching weather for ${cacheKey}`);
+
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 10000);
 
@@ -150,9 +167,23 @@ app.get("/api/weather", async (req, res) => {
     clearTimeout(timeoutId);
 
     if (!response.ok) {
+      if (response.status === 429) {
+        console.error("Weather API rate limited (429)");
+        return res.status(502).json({
+          error: "Weather API rate limited. Please try again in a few minutes.",
+          details: "429 Too Many Requests"
+        });
+      }
       throw new Error(`Weather API responded with ${response.status}`);
     }
     const data = await response.json();
+
+    // Store in cache
+    weatherCache.set(cacheKey, {
+      data,
+      timestamp: Date.now()
+    });
+
     res.json(data);
   } catch (err) {
     clearTimeout(timeoutId);
