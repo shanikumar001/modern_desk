@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useApi } from "./useActor";
 
 export interface WeatherData {
@@ -61,11 +62,19 @@ function getCondition(code: number): {
 
 const SAVED_CITY_KEY = "weather_saved_city";
 
+interface Coords {
+  lat: number;
+  lon: number;
+  name?: string;
+  country?: string;
+}
+
 export function useWeather(): WeatherState {
   const { api } = useApi();
-  const [data, setData] = useState<WeatherData | null>(null);
-  const [status, setStatus] = useState<WeatherStatus>("idle");
+  const [coords, setCoords] = useState<Coords | null>(null);
+  const [internalStatus, setInternalStatus] = useState<"idle" | "locating" | "denied">("idle");
   const [errorMessage, setErrorMessage] = useState("");
+
   const [savedCity, setSavedCity] = useState<string | null>(() => {
     try {
       return window.localStorage.getItem(SAVED_CITY_KEY);
@@ -74,111 +83,127 @@ export function useWeather(): WeatherState {
     }
   });
 
-  const fetchWeatherData = useCallback(
-    async (lat: number, lon: number, cityName?: string, country?: string) => {
-      setStatus("loading");
+  // Main Weather Query
+  const {
+    data: weatherData,
+    status: queryStatus,
+    error: queryError,
+    refetch
+  } = useQuery({
+    queryKey: ["weather", coords?.lat, coords?.lon],
+    queryFn: async () => {
+      if (!coords) return null;
+      const parsed = await api.fetchWeather(coords.lat, coords.lon);
+      const current = parsed?.current;
+      if (!current) throw new Error("Invalid weather response");
+
+      const code = current.weather_code ?? 0;
+      const { condition, iconType } = getCondition(code);
+
+      return {
+        temperature: Math.round(current.temperature_2m ?? 0),
+        humidity: Math.round(current.relative_humidity_2m ?? 0),
+        windSpeed: Math.round(current.wind_speed_10m ?? 0),
+        weatherCode: code,
+        condition,
+        iconType,
+        cityName: coords.name,
+        country: coords.country,
+      } as WeatherData;
+    },
+    enabled: !!coords,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    retry: 2,
+    retryDelay: (attempt) => Math.min(attempt * 2000, 10000), // Exponential backoff
+  });
+
+  const searchByCity = useCallback(
+    async (city: string): Promise<boolean> => {
+      setInternalStatus("idle");
+      setErrorMessage("");
       try {
-        const parsed = await api.fetchWeather(lat, lon);
-        const current = parsed?.current;
-        if (!current) throw new Error("Invalid weather response");
-        const code = current.weather_code ?? 0;
-        const { condition, iconType } = getCondition(code);
-        setData({
-          temperature: Math.round(current.temperature_2m ?? 0),
-          humidity: Math.round(current.relative_humidity_2m ?? 0),
-          windSpeed: Math.round(current.wind_speed_10m ?? 0),
-          weatherCode: code,
-          condition,
-          iconType,
-          cityName,
-          country,
-        });
-        setStatus("success");
+        const result = await api.geocode(city);
+        if (result && result.latitude && result.longitude) {
+          setCoords({
+            lat: result.latitude,
+            lon: result.longitude,
+            name: result.name,
+            country: result.country,
+          });
+          setSavedCity(city);
+          try {
+            window.localStorage.setItem(SAVED_CITY_KEY, city);
+          } catch { }
+          return true;
+        }
+        setErrorMessage("City not found");
+        return false;
       } catch (err) {
-        console.error("Weather fetch error:", err);
-        setErrorMessage("Failed to load weather data.");
-        setStatus("error");
+        console.error("City search error:", err);
+        setErrorMessage("Failed to find city");
+        return false;
       }
     },
     [api],
   );
 
-  const searchByCity = useCallback(
-    async (city: string): Promise<boolean> => {
-      setStatus("loading");
-      setErrorMessage("");
-      try {
-        const result = await api.geocode(city);
-        if (result && result.latitude && result.longitude) {
-          await fetchWeatherData(
-            result.latitude,
-            result.longitude,
-            result.name,
-            result.country,
-          );
-          setSavedCity(city);
-          try {
-            window.localStorage.setItem(SAVED_CITY_KEY, city);
-          } catch {}
-          return true;
-        }
-        setErrorMessage("City not found");
-        setStatus("error");
-        return false;
-      } catch (err) {
-        console.error("City search error:", err);
-        setErrorMessage("Failed to find city");
-        setStatus("error");
-        return false;
-      }
-    },
-    [api, fetchWeatherData],
-  );
-
-  const useLocation = useCallback(() => {
-    setSavedCity(null);
-    try {
-      window.localStorage.removeItem(SAVED_CITY_KEY);
-    } catch {}
-    requestLocation();
-  }, []);
-
   const requestLocation = useCallback(() => {
     if (!navigator.geolocation) {
-      setStatus("denied");
+      setInternalStatus("denied");
       setErrorMessage("Geolocation is not supported by your browser.");
       return;
     }
-    setStatus("locating");
+    setInternalStatus("locating");
     navigator.geolocation.getCurrentPosition(
       (pos) => {
-        fetchWeatherData(pos.coords.latitude, pos.coords.longitude);
+        setInternalStatus("idle");
+        setCoords({
+          lat: pos.coords.latitude,
+          lon: pos.coords.longitude
+        });
       },
       (err) => {
         console.error("Geolocation error:", err);
-        setStatus("denied");
+        setInternalStatus("denied");
         setErrorMessage("Location permission denied.");
       },
       { timeout: 10000 },
     );
-  }, [fetchWeatherData]);
+  }, []);
 
+  const useLocation = useCallback(() => {
+    setSavedCity(null);
+    setCoords(null);
+    try {
+      window.localStorage.removeItem(SAVED_CITY_KEY);
+    } catch { }
+    requestLocation();
+  }, [requestLocation]);
+
+  // Initial load
   useEffect(() => {
-    if (status === "idle") {
-      // If there's a saved city, use it; otherwise use location
+    if (coords === null && internalStatus === "idle") {
       if (savedCity) {
         searchByCity(savedCity);
       } else {
         requestLocation();
       }
     }
-  }, [status, savedCity, requestLocation, searchByCity]);
+  }, [coords, internalStatus, savedCity, searchByCity, requestLocation]);
+
+  // Map status
+  let status: WeatherStatus = "idle";
+  if (internalStatus === "locating") status = "locating";
+  else if (internalStatus === "denied") status = "denied";
+  else if (queryStatus === "pending" && coords) status = "loading";
+  else if (queryStatus === "success") status = "success";
+  else if (queryStatus === "error" || errorMessage) status = "error";
 
   return {
-    data,
+    data: weatherData || null,
     status,
-    errorMessage,
-    refresh: savedCity ? () => searchByCity(savedCity) : requestLocation,
+    errorMessage: errorMessage || (queryError ? "Failed to load weather data." : ""),
+    refresh: () => refetch(),
     searchByCity,
     useLocation,
     savedCity,
