@@ -319,7 +319,7 @@ export default function App() {
 
       {/* ── Footer ── */}
       <footer className="fixed bottom-2 left-1/2 -translate-x-1/2 z-10 text-[10px] text-white/20 tracking-widest pointer-events-none">
-        © {new Date().getFullYear()} • Built by Shani Kumar
+        © {new Date().getFullYear()} • Built by  <span style={{ color: "var(--accent-raw)" }} className="opacity-50 hover:opacity-100 hover:cursor-pointer">Shani Kumar</span>
       </footer>
       {/* Precision Dashboard  */}
       <Toaster />
