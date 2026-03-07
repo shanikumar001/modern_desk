@@ -33,6 +33,7 @@ let preferences = { theme: "dark", accentColor: "purple" };
 // Weather cache: { "roundedLat,roundedLon": { data, timestamp } }
 const weatherCache = new Map();
 const CACHE_TTL = 15 * 60 * 1000; // 15 minutes
+const STALE_TTL = 24 * 60 * 60 * 1000; // 24 hours
 
 // ─── Todo CRUD ───────────────────────────────────────────────────────
 
@@ -145,12 +146,13 @@ app.get("/api/weather", async (req, res) => {
   const cacheKey = `${roundedLat},${roundedLon}`;
 
   const cached = weatherCache.get(cacheKey);
-  if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+  const now = Date.now();
+  if (cached && now - cached.timestamp < CACHE_TTL) {
     console.log(`[Cache Hit] Weather for ${cacheKey}`);
     return res.json(cached.data);
   }
 
-  console.log(`[Cache Miss] Fetching weather for ${cacheKey}`);
+  console.log(`[Cache Miss/Stale] Fetching fresh weather for ${cacheKey}`);
 
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 10000);
@@ -169,6 +171,11 @@ app.get("/api/weather", async (req, res) => {
     if (!response.ok) {
       if (response.status === 429) {
         console.error("Weather API rate limited (429)");
+        // If we have stale data, use it as a fallback
+        if (cached && now - cached.timestamp < STALE_TTL) {
+          console.warn(`[Cache Fallback] Serving stale weather for ${cacheKey} due to 429 Rate Limit`);
+          return res.json(cached.data);
+        }
         return res.status(502).json({
           error: "Weather API rate limited. Please try again in a few minutes.",
           details: "429 Too Many Requests"
@@ -181,13 +188,20 @@ app.get("/api/weather", async (req, res) => {
     // Store in cache
     weatherCache.set(cacheKey, {
       data,
-      timestamp: Date.now()
+      timestamp: now
     });
 
     res.json(data);
   } catch (err) {
     clearTimeout(timeoutId);
     console.error("Weather fetch error:", err);
+
+    // Fallback for ANY error if we have stale data
+    if (cached && now - cached.timestamp < STALE_TTL) {
+      console.warn(`[Cache Fallback] Serving stale weather for ${cacheKey} due to error: ${err.message}`);
+      return res.json(cached.data);
+    }
+
     const errorMessage = err instanceof Error ? err.message : "Unknown error";
     res
       .status(502)
