@@ -51,7 +51,7 @@ export const MusicWidget: React.FC<MusicWidgetProps> = ({ size = 'small', width 
     if (isMini) {
         const artworkSize = Math.min(width, height) * 0.4;
         return (
-            <div className={`group relative flex flex-col items-center justify-center h-full w-full p-2 overflow-hidden transition-all duration-700 ${isPlaying ? 'bg-accent/5' : ''}`}>
+            <div className={`group relative flex flex-col items-center justify-center h-full w-full p-2 overflow-hidden transition-all duration-700 ${isPlaying ? '' : ''}`}>
                 {isPlaying && (
                     <div className="absolute inset-0 z-0 opacity-20 animate-pulse">
                         <div className="absolute inset-[-50%] bg-[radial-gradient(circle_at_center,oklch(var(--accent))_0%,transparent_70%)] blur-[40px] animate-[spin_10s_linear_infinite]" />

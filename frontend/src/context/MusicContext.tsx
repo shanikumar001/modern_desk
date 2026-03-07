@@ -46,13 +46,79 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     const currentTrack = playlist[currentIndex] || null;
 
+    // ─── Callbacks ─────────────────────────────────────────────────────
+
+    const togglePlay = useCallback(() => {
+        if (playlist.length > 0) {
+            setIsPlaying(prev => !prev);
+        }
+    }, [playlist.length]);
+
+    const nextTrack = useCallback(() => {
+        if (playlist.length > 0) {
+            setCurrentIndex(prev => (prev + 1) % playlist.length);
+        }
+    }, [playlist.length]);
+
+    const prevTrack = useCallback(() => {
+        if (playlist.length > 0) {
+            setCurrentIndex(prev => (prev - 1 + playlist.length) % playlist.length);
+        }
+    }, [playlist.length]);
+
+    const selectTrack = useCallback((index: number) => {
+        setCurrentIndex(index);
+        setIsPlaying(true);
+    }, []);
+
+    const addTracks = useCallback((files: FileList) => {
+        const newTracks: Track[] = Array.from(files)
+            .filter(file => file.type.startsWith('audio/'))
+            .map(file => ({
+                id: `${file.name}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                name: file.name.replace(/\.[^/.]+$/, ""),
+                url: URL.createObjectURL(file)
+            }));
+
+        if (newTracks.length > 0) {
+            setPlaylist(prev => {
+                const updated = [...prev, ...newTracks];
+                if (prev.length === 0) {
+                    setCurrentIndex(0);
+                }
+                return updated;
+            });
+            setIsPlaying(true);
+        }
+    }, []);
+
+    const removeTrack = useCallback((index: number) => {
+        setPlaylist(prev => prev.filter((_, i) => i !== index));
+        if (index === currentIndex) {
+            setIsPlaying(false);
+            setPlaylist(prev => {
+                if (prev.length > 0) setCurrentIndex(0);
+                return prev;
+            });
+        } else if (index < currentIndex) {
+            setCurrentIndex(prev => prev - 1);
+        }
+    }, [currentIndex]);
+
+    const clearPlaylist = useCallback(() => {
+        setPlaylist([]);
+        setCurrentIndex(0);
+        setIsPlaying(false);
+    }, []);
+
+    // ─── Effects ────────────────────────────────────────────────────────
+
     // Initialize audio element on mount
     useEffect(() => {
-        audioRef.current = new Audio();
-        audioRef.current.volume = volume;
-        
-        const audio = audioRef.current;
-        
+        const audio = new Audio();
+        audioRef.current = audio;
+        audio.volume = volume;
+
         const handleTimeUpdate = () => {
             const current = audio.currentTime;
             const total = audio.duration;
@@ -61,18 +127,27 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             setDuration(formatTime(total));
         };
 
+        audio.addEventListener('timeupdate', handleTimeUpdate);
+
+        return () => {
+            audio.removeEventListener('timeupdate', handleTimeUpdate);
+            audio.pause();
+            audio.src = "";
+        };
+    }, []);
+
+    // Handle "ended" event separately to avoid stale closure
+    useEffect(() => {
+        const audio = audioRef.current;
+        if (!audio) return;
+
         const handleEnded = () => {
             nextTrack();
         };
 
-        audio.addEventListener('timeupdate', handleTimeUpdate);
         audio.addEventListener('ended', handleEnded);
-
-        return () => {
-            audio.removeEventListener('timeupdate', handleTimeUpdate);
-            audio.removeEventListener('ended', handleEnded);
-        };
-    }, []);
+        return () => audio.removeEventListener('ended', handleEnded);
+    }, [nextTrack]);
 
     // Handle volume changes
     useEffect(() => {
@@ -99,69 +174,6 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             audio.pause();
         }
     }, [currentIndex, isPlaying, currentTrack]);
-
-    const addTracks = useCallback((files: FileList) => {
-        const newTracks: Track[] = Array.from(files)
-            .filter(file => file.type.startsWith('audio/'))
-            .map(file => ({
-                id: `${file.name}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-                name: file.name.replace(/\.[^/.]+$/, ""),
-                url: URL.createObjectURL(file)
-            }));
-
-        if (newTracks.length > 0) {
-            setPlaylist(prev => {
-                const updated = [...prev, ...newTracks];
-                if (prev.length === 0) {
-                    setCurrentIndex(0);
-                    setIsPlaying(true);
-                }
-                return updated;
-            });
-        }
-    }, []);
-
-    const removeTrack = useCallback((index: number) => {
-        setPlaylist(prev => prev.filter((_, i) => i !== index));
-        if (index === currentIndex) {
-            setIsPlaying(false);
-            setPlaylist(prev => {
-                if (prev.length > 0) setCurrentIndex(0);
-                return prev;
-            });
-        } else if (index < currentIndex) {
-            setCurrentIndex(prev => prev - 1);
-        }
-    }, [currentIndex]);
-
-    const clearPlaylist = useCallback(() => {
-        setPlaylist([]);
-        setCurrentIndex(0);
-        setIsPlaying(false);
-    }, []);
-
-    const togglePlay = useCallback(() => {
-        if (playlist.length > 0) {
-            setIsPlaying(prev => !prev);
-        }
-    }, [playlist.length]);
-
-    const nextTrack = useCallback(() => {
-        if (playlist.length > 0) {
-            setCurrentIndex(prev => (prev + 1) % playlist.length);
-        }
-    }, [playlist.length]);
-
-    const prevTrack = useCallback(() => {
-        if (playlist.length > 0) {
-            setCurrentIndex(prev => (prev - 1 + playlist.length) % playlist.length);
-        }
-    }, [playlist.length]);
-
-    const selectTrack = useCallback((index: number) => {
-        setCurrentIndex(index);
-        setIsPlaying(true);
-    }, []);
 
     return (
         <MusicContext.Provider value={{
