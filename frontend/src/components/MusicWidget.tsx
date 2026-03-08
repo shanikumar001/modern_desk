@@ -1,8 +1,9 @@
-import React, { useRef, useEffect } from 'react';
-import { Play, Pause, SkipBack, SkipForward, Volume2, FolderPlus, FilePlus, ListMusic, X, Disc, Trash2 } from 'lucide-react';
+import React, { useRef, useEffect, useState } from 'react';
+import { Play, Pause, SkipBack, SkipForward, Volume2, FolderPlus, FilePlus, ListMusic, X, Disc, Trash2, Loader2 } from 'lucide-react';
 import { WidgetSize } from '../context/WidgetContext';
 import { useMusic } from '../context/MusicContext';
 import { MusicArtworkAnimation } from './MusicArtworkAnimation';
+import { isFileSystemAccessSupported, openDirectoryPicker } from '../lib/musicStorage';
 
 interface MusicWidgetProps {
     size?: WidgetSize;
@@ -33,15 +34,67 @@ export const MusicWidget: React.FC<MusicWidgetProps> = ({ size = 'small', width 
         clearPlaylist,
         addTracks,
         selectTrack,
-        setVolume
+        setVolume,
+        isLoading
     } = useMusic();
 
-    const handleFolderUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files) addTracks(e.target.files);
+    const [isAddingTracks, setIsAddingTracks] = useState(false);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const folderInputRef = useRef<HTMLInputElement>(null);
+
+    const handleFolderUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files) {
+            setIsAddingTracks(true);
+            try {
+                await addTracks(e.target.files);
+            } finally {
+                setIsAddingTracks(false);
+                // Reset input
+                if (folderInputRef.current) {
+                    folderInputRef.current.value = '';
+                }
+            }
+        }
     };
 
-    const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files) addTracks(e.target.files);
+    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files) {
+            setIsAddingTracks(true);
+            try {
+                await addTracks(e.target.files);
+            } finally {
+                setIsAddingTracks(false);
+                // Reset input
+                if (fileInputRef.current) {
+                    fileInputRef.current.value = '';
+                }
+            }
+        }
+    };
+
+    // Handle File System Access API folder selection (modern browsers)
+    const handleAdvancedFolderUpload = async () => {
+        if (!isFileSystemAccessSupported()) {
+            // Fallback to traditional file input
+            folderInputRef.current?.click();
+            return;
+        }
+
+        try {
+            setIsAddingTracks(true);
+            const files = await openDirectoryPicker();
+            if (files.length > 0) {
+                await addTracks(files);
+            }
+        } catch (error) {
+            // User cancelled or error - fallback to traditional input
+            if ((error as Error).name !== 'AbortError') {
+                console.error('Failed to open directory picker:', error);
+            }
+            folderInputRef.current?.click();
+        } finally {
+            setIsAddingTracks(false);
+        }
     };
 
     const isMini = !isExpanded && (width < 280 || height < 280);
@@ -169,26 +222,68 @@ export const MusicWidget: React.FC<MusicWidgetProps> = ({ size = 'small', width 
                         <div className="flex items-center justify-between mb-6">
                             <h4 className="text-sm font-black uppercase tracking-[0.2em] text-white/40">Library Telemetry</h4>
                             <div className="flex gap-2">
-                                <label className="p-2 hover:bg-white/10 rounded-xl cursor-pointer transition-all text-white/40 hover:text-accent"><FolderPlus size={18} /><input type="file" multiple
-                                    // @ts-ignore
-                                    webkitdirectory="true" onChange={handleFolderUpload} className="hidden" /></label>
-                                <label className="p-2 hover:bg-white/10 rounded-xl cursor-pointer transition-all text-white/40 hover:text-accent"><FilePlus size={18} /><input type="file" multiple onChange={handleFileUpload} className="hidden" /></label>
+                                {isAddingTracks || isLoading ? (
+                                    <div className="p-2">
+                                        <Loader2 size={18} className="text-accent animate-spin" />
+                                    </div>
+                                ) : (
+                                    <>
+                                        <button 
+                                            onClick={handleAdvancedFolderUpload}
+                                            className="p-2 hover:bg-white/10 rounded-xl cursor-pointer transition-all text-white/40 hover:text-accent"
+                                            title={isFileSystemAccessSupported() ? "Choose folder (Advanced)" : "Choose folder"}
+                                        >
+                                            <FolderPlus size={18} />
+                                        </button>
+                                        <input 
+                                            type="file" 
+                                            multiple 
+                                            ref={folderInputRef}
+                                            // @ts-ignore
+                                            webkitdirectory="true" 
+                                            onChange={handleFolderUpload} 
+                                            className="hidden" 
+                                        />
+                                        <label className="p-2 hover:bg-white/10 rounded-xl cursor-pointer transition-all text-white/40 hover:text-accent">
+                                            <FilePlus size={18} />
+                                            <input 
+                                                type="file" 
+                                                multiple 
+                                                ref={fileInputRef}
+                                                onChange={handleFileUpload} 
+                                                className="hidden" 
+                                            />
+                                        </label>
+                                    </>
+                                )}
                             </div>
                         </div>
 
-                        <div className="flex-1 overflow-y-auto custom-scrollbar space-y-2 pr-2">
-                            {playlist.map((track, idx) => (
-                                <div
-                                    key={track.id}
-                                    onClick={() => selectTrack(idx)}
-                                    className={`p-3 rounded-2xl flex items-center gap-4 cursor-pointer transition-all ${idx === currentIndex ? 'bg-accent/20 border border-accent/20' : 'hover:bg-white/5 border border-transparent'}`}
-                                >
-                                    <span className={`text-[10px] font-black ${idx === currentIndex ? 'text-accent' : 'text-white/20'}`}>{String(idx + 1).padStart(2, '0')}</span>
-                                    <span className={`flex-1 truncate text-xs font-bold ${idx === currentIndex ? 'text-white' : 'text-white/40'}`}>{track.name}</span>
-                                    <button onClick={(e) => { e.stopPropagation(); removeTrack(idx); }} className="opacity-0 group-hover:opacity-100 p-1.5 hover:bg-rose-500/20 text-rose-500/40 hover:text-rose-500 rounded-lg"><Trash2 size={14} /></button>
-                                </div>
-                            ))}
-                        </div>
+                        {isLoading ? (
+                            <div className="flex-1 flex items-center justify-center">
+                                <Loader2 size={32} className="text-white/20 animate-spin" />
+                            </div>
+                        ) : playlist.length === 0 ? (
+                            <div className="flex-1 flex flex-col items-center justify-center text-white/30">
+                                <ListMusic size={48} className="mb-4 opacity-30" />
+                                <p className="text-sm font-medium">No music added yet</p>
+                                <p className="text-xs mt-1 opacity-60">Add folder or files to get started</p>
+                            </div>
+                        ) : (
+                            <div className="flex-1 overflow-y-auto custom-scrollbar space-y-2 pr-2">
+                                {playlist.map((track, idx) => (
+                                    <div
+                                        key={track.id}
+                                        onClick={() => selectTrack(idx)}
+                                        className={`p-3 rounded-2xl flex items-center gap-4 cursor-pointer transition-all group ${idx === currentIndex ? 'bg-accent/20 border border-accent/20' : 'hover:bg-white/5 border border-transparent'}`}
+                                    >
+                                        <span className={`text-[10px] font-black ${idx === currentIndex ? 'text-accent' : 'text-white/20'}`}>{String(idx + 1).padStart(2, '0')}</span>
+                                        <span className={`flex-1 truncate text-xs font-bold ${idx === currentIndex ? 'text-white' : 'text-white/40'}`}>{track.name}</span>
+                                        <button onClick={(e) => { e.stopPropagation(); removeTrack(idx); }} className="opacity-0 group-hover:opacity-100 p-1.5 hover:bg-rose-500/20 text-rose-500/40 hover:text-rose-500 rounded-lg transition-all"><Trash2 size={14} /></button>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
                     </div>
                 )}
             </div>

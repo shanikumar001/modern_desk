@@ -7,6 +7,7 @@ import {
   Plus,
   Music,
   X,
+  Loader2,
 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { Particles } from "./components/Particles";
@@ -26,10 +27,12 @@ import { ClockWidget } from "./components/ClockWidget";
 import { WeatherWidget } from "./components/WeatherWidget";
 import { TodoWidget } from "./components/TodoWidget";
 import { CalculatorWidget } from "./components/CalculatorWidget";
+import { getAllBackgroundMedia, addBackgroundMedia, deleteBackgroundMedia, getBackgroundMediaWithUrl, clearAllBackgroundMedia, getAllBackgroundMediaWithUrls, type MediaMetadata } from "./lib/musicStorage";
 
 interface BackgroundState {
   url: string;
   type: "image" | "video";
+  mediaId?: string; // Store the ID for IndexedDB reference
 }
 
 // Weather-based accent colors
@@ -88,10 +91,65 @@ export default function App() {
   const { expandedWidgetId, setExpandedWidgetId, activeWidgets } = useWidgets();
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [libraryOpen, setLibraryOpen] = useState(false);
+  
+  // Background state - use localStorage for persistence + IndexedDB for media
+  // Start with null to avoid rendering invalid blob URLs
   const [bg, setBg] = useLocalStorage<BackgroundState | null>(
     "dashboard_bg_v2",
     null,
   );
+  
+  // Track if background has been restored from IndexedDB
+  const [isBackgroundReady, setIsBackgroundReady] = useState(false);
+  
+  // State for stored backgrounds from IndexedDB
+  const [storedBackgrounds, setStoredBackgrounds] = useState<(MediaMetadata & { url: string })[]>([]);
+  const [isLoadingBackgrounds, setIsLoadingBackgrounds] = useState(true);
+
+  // Load stored backgrounds and restore active background from IndexedDB on mount
+  useEffect(() => {
+    const loadStoredBackgrounds = async () => {
+      try {
+        // First, load all stored backgrounds for the UI
+        const media = await getAllBackgroundMediaWithUrls();
+        const metadata = media.map(({ metadata, url }) => ({
+          ...metadata,
+          url
+        }));
+        setStoredBackgrounds(metadata);
+        
+        // Check if we have a background in localStorage that needs restoration
+        const savedBg = localStorage.getItem('dashboard_bg_v2');
+        if (savedBg) {
+          try {
+            const parsed = JSON.parse(savedBg);
+            // If we have a mediaId, restore from IndexedDB
+            if (parsed.mediaId) {
+              const restored = await getBackgroundMediaWithUrl(parsed.mediaId);
+              if (restored) {
+                // Update with fresh blob URL from IndexedDB
+                setBg({ url: restored.url, type: restored.metadata.mediaType, mediaId: restored.metadata.id });
+              }
+            } 
+            // If we just have a URL (old format), keep using it but verify it's still valid
+            else if (parsed.url) {
+              // For external URLs, they should still work
+              setIsBackgroundReady(true);
+            }
+          } catch (e) {
+            console.error('Error parsing saved background:', e);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to load stored backgrounds:', error);
+      } finally {
+        setIsLoadingBackgrounds(false);
+        setIsBackgroundReady(true);
+      }
+    };
+    
+    loadStoredBackgrounds();
+  }, [setBg]);
 
   // Todo count for pill
   const [todoCount, setTodoCount] = useState(0);
@@ -151,12 +209,43 @@ export default function App() {
     return () => window.removeEventListener("keydown", handleEscape);
   }, [settingsOpen, libraryOpen, expandedWidgetId, setExpandedWidgetId]);
 
-  const handleSetBackground = useCallback(
-    (url: string, type: "image" | "video") => setBg({ url, type }),
-    [setBg],
-  );
+  // Handle setting background - saves to IndexedDB and localStorage
+  const handleSetBackground = useCallback(async (url: string, type: "image" | "video", file?: File) => {
+    let mediaId: string | undefined;
+    
+    // If we have a file, save it to IndexedDB
+    if (file) {
+      try {
+        const metadata = await addBackgroundMedia(file);
+        mediaId = metadata.id;
+        
+        // Update stored backgrounds list with the new URL
+        setStoredBackgrounds(prev => [...prev, { ...metadata, url }]);
+      } catch (error) {
+        console.error('Failed to save background to IndexedDB:', error);
+      }
+    }
+    
+    setBg({ url, type, mediaId });
+  }, [setBg]);
 
-  const handleRemoveBackground = useCallback(() => setBg(null), [setBg]);
+  // Handle removing background
+  const handleRemoveBackground = useCallback(async () => {
+    // Get current background to check if we need to delete from IndexedDB
+    const savedBg = localStorage.getItem('dashboard_bg_v2');
+    if (savedBg) {
+      try {
+        const parsed = JSON.parse(savedBg);
+        if (parsed.mediaId) {
+          await deleteBackgroundMedia(parsed.mediaId);
+          setStoredBackgrounds(prev => prev.filter(b => b.id !== parsed.mediaId));
+        }
+      } catch (e) {
+        // Ignore
+      }
+    }
+    setBg(null);
+  }, [setBg]);
 
   // Pill data
   const clockTime = `${clockState.hours}:${clockState.minutes}`;
@@ -194,7 +283,7 @@ export default function App() {
   return (
     <div className="fixed inset-0 overflow-hidden bg-black select-none">
       {/* ── Layer 0: Background ── */}
-      {bg ? (
+      {isBackgroundReady && bg ? (
         bg.type === "video" ? (
           <video
             className="bg-media object-cover w-full h-full"
@@ -231,6 +320,18 @@ export default function App() {
         backgroundType={bg?.type ?? null}
         onSetBackground={handleSetBackground}
         onRemoveBackground={handleRemoveBackground}
+        storedBackgrounds={storedBackgrounds}
+        isLoadingBackgrounds={isLoadingBackgrounds}
+        onSelectStoredBackground={async (mediaId: string) => {
+          const result = await getBackgroundMediaWithUrl(mediaId);
+          if (result) {
+            setBg({ url: result.url, type: result.metadata.mediaType, mediaId: result.metadata.id });
+          }
+        }}
+        onDeleteStoredBackground={async (mediaId: string) => {
+          await deleteBackgroundMedia(mediaId);
+          setStoredBackgrounds(prev => prev.filter(b => b.id !== mediaId));
+        }}
       />
 
       {/* ── Generic Expanded Widget Overlay (for Floating or Nav expansion) ── */}

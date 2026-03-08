@@ -1,16 +1,30 @@
-import { Image, Moon, Palette, Sun, Trash2, Upload, X } from "lucide-react";
+import { Image, Moon, Palette, Sun, Trash2, Upload, X, Play, FolderOpen } from "lucide-react";
 import { useCallback, useRef, useState } from "react";
 import { useLocalStorage } from "../hooks/useLocalStorage";
 import { useTheme, ACCENT_COLORS } from "../hooks/useTheme";
 import type { AccentColor, ThemeState } from "../hooks/useTheme";
 
+interface MediaMetadata {
+  id: string;
+  name: string;
+  mediaType: 'image' | 'video';
+  type: string;
+  size: number;
+  lastModified: number;
+  url?: string;
+}
+
 interface SettingsPanelProps extends Omit<ThemeState, 'setTheme'> {
   open: boolean;
   onClose: () => void;
   backgroundUrl: string | null;
-  onSetBackground: (url: string, type: "image" | "video") => void;
+  onSetBackground: (url: string, type: "image" | "video", file?: File) => Promise<void>;
   onRemoveBackground: () => void;
   backgroundType: "image" | "video" | null;
+  storedBackgrounds?: MediaMetadata[];
+  isLoadingBackgrounds?: boolean;
+  onSelectStoredBackground?: (mediaId: string) => Promise<void>;
+  onDeleteStoredBackground?: (mediaId: string) => Promise<void>;
 }
 
 export function SettingsPanel({
@@ -26,6 +40,10 @@ export function SettingsPanel({
   onSetBackground,
   onRemoveBackground,
   backgroundType,
+  storedBackgrounds = [],
+  isLoadingBackgrounds = false,
+  onSelectStoredBackground,
+  onDeleteStoredBackground,
 }: SettingsPanelProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dropZoneRef = useRef<HTMLButtonElement>(null);
@@ -37,6 +55,7 @@ export function SettingsPanel({
   const [previewType, setPreviewType] = useState<"image" | "video" | null>(
     null,
   );
+  const [previewFile, setPreviewFile] = useState<File | null>(null);
 
   const processFile = useCallback(
     (file: File) => {
@@ -44,6 +63,7 @@ export function SettingsPanel({
       const url = URL.createObjectURL(file);
       setPreviewUrl(url);
       setPreviewType(type);
+      setPreviewFile(file);
     },
     [setPreviewUrl],
   );
@@ -69,11 +89,12 @@ export function SettingsPanel({
     [processFile],
   );
 
-  const applyBackground = () => {
+  const applyBackground = async () => {
     if (previewUrl && previewType) {
-      onSetBackground(previewUrl, previewType);
+      await onSetBackground(previewUrl, previewType, previewFile || undefined);
       setPreviewUrl(null);
       setPreviewType(null);
+      setPreviewFile(null);
     }
   };
 
@@ -81,6 +102,7 @@ export function SettingsPanel({
     if (previewUrl) URL.revokeObjectURL(previewUrl);
     setPreviewUrl(null);
     setPreviewType(null);
+    setPreviewFile(null);
   };
 
   return (
@@ -413,6 +435,67 @@ export function SettingsPanel({
               style={{ display: "none" }}
               aria-label="Upload background"
             />
+
+            {/* Stored Backgrounds Section */}
+            {storedBackgrounds.length > 0 && (
+              <div className="mt-4">
+                <p className="text-xs font-semibold uppercase tracking-wider text-white/40 mb-2">
+                  Saved Backgrounds
+                </p>
+                <div className="grid grid-cols-3 gap-2">
+                  {storedBackgrounds.map((media) => (
+                    <div
+                      key={media.id}
+                      className="relative group aspect-video rounded-lg overflow-hidden border border-white/10"
+                    >
+                      {media.url ? (
+                        media.mediaType === 'video' ? (
+                          <video
+                            src={media.url}
+                            className="w-full h-full object-cover"
+                            muted
+                            playsInline
+                          />
+                        ) : (
+                          <img
+                            src={media.url}
+                            alt={media.name}
+                            className="w-full h-full object-cover"
+                          />
+                        )
+                      ) : (
+                        <div 
+                          className="w-full h-full bg-white/10 flex items-center justify-center"
+                        >
+                          <Image size={16} className="text-white/30" />
+                        </div>
+                      )}
+                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1">
+                        <button
+                          type="button"
+                          onClick={() => onSelectStoredBackground?.(media.id)}
+                          className="p-1.5 bg-white/20 rounded-full hover:bg-white/30 transition-colors"
+                          title="Apply this background"
+                        >
+                          {media.mediaType === 'video' ? <Play size={12} fill="white" /> : <Image size={12} />}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => onDeleteStoredBackground?.(media.id)}
+                          className="p-1.5 bg-rose-500/40 rounded-full hover:bg-rose-500/60 transition-colors"
+                          title="Delete this background"
+                        >
+                          <Trash2 size={12} />
+                        </button>
+                      </div>
+                      <div className="absolute bottom-0 left-0 right-0 p-1 bg-gradient-to-t from-black/60 to-transparent">
+                        <p className="text-[8px] truncate text-white/80">{media.name}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {backgroundUrl && (
               <button
